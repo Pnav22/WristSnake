@@ -24,5 +24,5 @@ A wearable LED snake game powered by Arduino/ESP32 and a flexible WS2812B LED ma
 | ESP32     | Main microcontroller controlling the game      |
 | WS2812B 8x32 LED Matrix Panel   | Flexible LED display panel for the snake game |
 | Phone | Player input for controlling snake direction |
-| Li-Po Battery    | Portable power supply                          |
+| Power Bank    | Portable power supply - more amps and voltage than lipo|
 | Wires, Velcro, | For mounting the display and input device
