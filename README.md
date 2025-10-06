@@ -1,7 +1,7 @@
-# CyberSnake  
+# WristSnake  
 A wearable LED snake game powered by Arduino/ESP32 and a flexible WS2812B LED matrix
 
-![CyberSnake Mockup](CONCEPT.jpg) <!-- Optional: replace with your image -->
+![CyberSnake Mockup](CONCEPT.png) <!-- Optional: replace with your image -->
 
 ## Overview
 **CyberSnake** is a wearable, arm-mounted snake game built around an **ESP32** and a **flexible WS2812B 8x32 LED matrix panel**. Players control a snake that moves across the LED display using **their phone**, collecting food pixels to grow in length. The display wraps around another person's arm, creating a visually striking and hard game experience. 
