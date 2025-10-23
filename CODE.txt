@@ -1,0 +1,128 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <Adafruit_NeoPixel.h>
+
+#define LED_PIN 23
+#define LED_WIDTH 32
+#define LED_HEIGHT 8
+#define NUM_LEDS (LED_WIDTH * LED_HEIGHT)
+
+const char* ssid = "MSREDDY 5.0";
+const char* password = "1029384756";
+
+Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+WebServer server(80);
+
+// snake properties
+int snakeLength = 5;
+int snakeDir = 1;  // 0=up,1=right,2=down,3=left
+int snakeX[256];
+int snakeY[256];
+int appleX, appleY;
+
+unsigned long lastMove = 0;
+int speedDelay = 200;  // ms
+
+int xyToIndex(int x, int y) {
+  // serpentine layout (odd rows reversed)
+  if (y % 2 == 0) return y * LED_WIDTH + x;
+  else return y * LED_WIDTH + (LED_WIDTH - 1 - x);
+}
+
+void drawPixel(int x, int y, uint32_t color) {
+  if (x >= 0 && x < LED_WIDTH && y >= 0 && y < LED_HEIGHT)
+    strip.setPixelColor(xyToIndex(x, y), color);
+}
+
+void drawSnake() {
+  strip.clear();
+  for (int i = 0; i < snakeLength; i++)
+    drawPixel(snakeX[i], snakeY[i], strip.Color(0, 255, 0)); // green snake
+  drawPixel(appleX, appleY, strip.Color(255, 0, 0)); // red apple
+  strip.show();
+}
+
+void moveSnake() {
+  for (int i = snakeLength - 1; i > 0; i--) {
+    snakeX[i] = snakeX[i - 1];
+    snakeY[i] = snakeY[i - 1];
+  }
+
+  if (snakeDir == 0) snakeY[0]--;
+  if (snakeDir == 1) snakeX[0]++;
+  if (snakeDir == 2) snakeY[0]++;
+  if (snakeDir == 3) snakeX[0]--;
+
+  // wrap around edges
+  if (snakeX[0] < 0) snakeX[0] = LED_WIDTH - 1;
+  if (snakeX[0] >= LED_WIDTH) snakeX[0] = 0;
+  if (snakeY[0] < 0) snakeY[0] = LED_HEIGHT - 1;
+  if (snakeY[0] >= LED_HEIGHT) snakeY[0] = 0;
+
+  // eat apple
+  if (snakeX[0] == appleX && snakeY[0] == appleY) {
+    snakeLength++;
+    appleX = random(0, LED_WIDTH);
+    appleY = random(0, LED_HEIGHT);
+  }
+}
+
+void handleRoot() {
+  String html = "<html><body><h1>Snake Controls</h1>";
+  html += "<button onclick=\"fetch('/up')\">⬆️</button><br>";
+  html += "<button onclick=\"fetch('/left')\">⬅️</button>";
+  html += "<button onclick=\"fetch('/down')\">⬇️</button>";
+  html += "<button onclick=\"fetch('/right')\">➡️</button>";
+  html += "</body></html>";
+  server.send(200, "text/html", html);
+}
+
+void handleDir(String dir) {
+  if (dir == "up" && snakeDir != 2) snakeDir = 0;
+  if (dir == "right" && snakeDir != 3) snakeDir = 1;
+  if (dir == "down" && snakeDir != 0) snakeDir = 2;
+  if (dir == "left" && snakeDir != 1) snakeDir = 3;
+  server.send(200, "text/plain", "OK");
+}
+
+void setup() {
+  Serial.begin(115200);
+  strip.begin();
+  strip.show();
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected!");
+  Serial.println(WiFi.localIP());
+
+  server.on("/", handleRoot);
+  server.on("/up", []() { handleDir("up"); });
+  server.on("/down", []() { handleDir("down"); });
+  server.on("/left", []() { handleDir("left"); });
+  server.on("/right", []() { handleDir("right"); });
+  server.begin();
+
+  snakeX[0] = 5; snakeY[0] = 5;
+  for (int i = 1; i < snakeLength; i++) {
+    snakeX[i] = snakeX[i - 1] - 1;
+    snakeY[i] = snakeY[i - 1];
+  }
+
+  randomSeed(analogRead(0));
+  appleX = random(0, LED_WIDTH);
+  appleY = random(0, LED_HEIGHT);
+}
+
+void loop() {
+  server.handleClient();
+
+  if (millis() - lastMove > speedDelay) {
+    moveSnake();
+    drawSnake();
+    lastMove = millis();
+  }
+}
